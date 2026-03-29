@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carlos — Content OS</title>
+  <style>
+    :root {
+      --ink:#1a1814; --paper:#f5f2ec; --cream:#ede9e1; --rule:#d4cec4; --muted:#7d746d;
+      --gold:#b8963e; --forest:#2d4a3e; --terracotta:#c45c3a; --sky:#3a5f8a; --surface:#fff;
+      --shadow:rgba(26,24,20,.08);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+    .app { display:grid; grid-template-columns:240px 1fr; min-height:100vh; }
+    nav { background:var(--ink); color:#fff; padding:24px 0; }
+    .brand { padding:0 24px 20px; border-bottom:1px solid rgba(255,255,255,.08); }
+    .brand h1 { margin:0; font-size:22px; }
+    .brand p { margin:4px 0 0; color:#d7c07c; font-size:12px; letter-spacing:.12em; text-transform:uppercase; }
+    .nav-item { display:block; padding:12px 24px; color:rgba(255,255,255,.72); cursor:pointer; text-decoration:none; }
+    .nav-item:hover, .nav-item.active { color:#fff; background:rgba(255,255,255,.06); border-left:3px solid var(--gold); padding-left:21px; }
+    main { padding:32px; }
+    .hero { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:24px; }
+    .hero h2 { margin:0; font-size:30px; }
+    .hero p { margin:6px 0 0; color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:24px; }
+    .card { background:var(--surface); border:1px solid var(--rule); border-radius:12px; padding:18px; box-shadow:0 4px 16px var(--shadow); }
+    .stat { font-size:32px; font-weight:700; }
+    .label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+    .two { display:grid; grid-template-columns:1.15fr .85fr; gap:18px; }
+    .section-title { margin:0 0 10px; font-size:18px; }
+    .muted { color:var(--muted); }
+    textarea, input, select { width:100%; padding:10px 12px; border:1px solid var(--rule); border-radius:8px; background:#fff; }
+    button { padding:10px 14px; border:0; border-radius:8px; cursor:pointer; }
+    .primary { background:var(--ink); color:#fff; }
+    .gold { background:var(--gold); color:#fff; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+    .stack > * + * { margin-top:12px; }
+    .draft { white-space:pre-wrap; background:var(--surface); border:1px solid var(--rule); border-radius:12px; padding:16px; }
+    .pill { display:inline-block; padding:4px 8px; border:1px solid var(--rule); border-radius:999px; font-size:12px; margin:2px 6px 0 0; }
+    .view { display:none; }
+    .view.active { display:block; }
+    @media (max-width: 900px) { .app { grid-template-columns:1fr; } nav { display:none; } .grid,.two,.row { grid-template-columns:1fr; } main { padding:18px; } }
+  </style>
+  <script>
+    window.CONTENT_OS_API_URL = 'https://your-project-name.vercel.app/api/generate-drafts';
+  </script>
+</head>
+<body>
+<div class="app">
+  <nav>
+    <div class="brand"><h1>Carlos</h1><p>Content OS</p></div>
+    <a class="nav-item active" onclick="showView('dashboard', this)">Dashboard</a>
+    <a class="nav-item" onclick="showView('capture', this)">Capture Signal</a>
+    <a class="nav-item" onclick="showView('studio', this)">Draft Studio</a>
+    <a class="nav-item" onclick="showView('library', this)">Signal Library</a>
+  </nav>
+  <main>
+    <section id="dashboard" class="view active">
+      <div class="hero">
+        <div><h2>A disciplined system for turning observation into authority.</h2><p>Professional, operator-minded, and built for LinkedIn-first multi-channel publishing.</p></div>
+      </div>
+      <div class="grid">
+        <div class="card"><div class="stat" id="ideasCount">0</div><div class="label">Signals captured</div></div>
+        <div class="card"><div class="stat" id="draftsCount">0</div><div class="label">Draft sets</div></div>
+        <div class="card"><div class="stat" id="evergreenCount">0</div><div class="label">Evergreen assets</div></div>
+        <div class="card"><div class="stat" id="readyCount">0</div><div class="label">Ready to refine</div></div>
+      </div>
+      <div class="two">
+        <div class="card">
+          <h3 class="section-title">Positioning pillars</h3>
+          <div class="stack muted">
+            <div><strong>Operator-minded.</strong> Practical insight over performance.</div>
+            <div><strong>Insight over noise.</strong> One sharp observation beats trend-chasing.</div>
+            <div><strong>Global thinker, local proof.</strong> DMV context keeps the ideas grounded.</div>
+            <div><strong>Authority over virality.</strong> Build trust slowly and intentionally.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="section-title">Topic mix</h3>
+          <div id="tagMix" class="muted">No signals yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="capture" class="view">
+      <div class="card">
+        <h3 class="section-title">Capture Signal</h3>
+        <div class="row">
+          <div><label>Core signal</label><input id="capHook" placeholder="What did you notice?" /></div>
+          <div><label>Anchor platform</label><select id="capAnchor"><option>LinkedIn-first</option><option>Instagram-first</option><option>TikTok-first</option><option>Facebook-first</option></select></div>
+        </div>
+        <div class="row">
+          <div><label>Lens</label><select id="capLens"><option>Operational</option><option>Financial</option><option>Guest experience</option><option>Systems/process</option><option>Leadership</option><option>Brand/perception</option><option>Local observation</option></select></div>
+          <div><label>Proof point</label><select id="capProof"><option>Field observation</option><option>Client conversation</option><option>Personal experience</option><option>Question I was asked</option><option>Industry signal</option><option>Repeated pattern</option></select></div>
+        </div>
+        <div class="row">
+          <div><label>Topic tag</label><select id="capTag"><option>hospitality</option><option>menu</option><option>beverage</option><option>fintech</option><option>operator insight</option><option>leadership</option><option>local market</option></select></div>
+          <div><label>Stage</label><select id="capStage"><option>raw</option><option>worth developing</option><option>ready to draft</option></select></div>
+        </div>
+        <div><label>Notes</label><textarea id="capNotes" rows="6" placeholder="What is the real point? What tension do you see? Why does it matter?"></textarea></div>
+        <div style="margin-top:12px; display:flex; gap:10px;"><button class="primary" onclick="saveSignal()">Save signal</button><button class="gold" onclick="moveToStudio()">Save + open Draft Studio</button></div>
+      </div>
+    </section>
+
+    <section id="studio" class="view">
+      <div class="two">
+        <div class="card">
+          <h3 class="section-title">Draft Studio</h3>
+          <div class="stack">
+            <div><label>Core signal</label><input id="studioHook" placeholder="Paste or select a signal" /></div>
+            <div><label>Context</label><textarea id="studioNotes" rows="8" placeholder="Add the story, observation, or framing you want the drafts to carry."></textarea></div>
+            <div class="muted">This prototype can call a secure backend when <code>window.CONTENT_OS_API_URL</code> is set to your live Vercel endpoint. It also includes a local fallback so the interface works before deployment.</div>
+            <div><button class="gold" onclick="generateDrafts()">Generate 4 drafts</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="section-title">Guardrails</h3>
+          <div class="stack muted">
+            <div>No direct selling.</div>
+            <div>No client-identifiable details.</div>
+            <div>No confidential metrics or internal information.</div>
+            <div>No reactive posting when emotional.</div>
+            <div>Keep it useful, grounded, and conflict-free.</div>
+          </div>
+        </div>
+      </div>
+      <div id="draftOutput" class="stack" style="margin-top:18px;"></div>
+    </section>
+
+    <section id="library" class="view">
+      <div class="card">
+        <h3 class="section-title">Signal Library</h3>
+        <div id="libraryList" class="stack muted">No signals saved yet.</div>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+const state = {
+  signals: JSON.parse(localStorage.getItem('carlos-signals') || '[]'),
+  draftSets: JSON.parse(localStorage.getItem('carlos-draftsets') || '[]')
+};
+function persist(){
+  localStorage.setItem('carlos-signals', JSON.stringify(state.signals));
+  localStorage.setItem('carlos-draftsets', JSON.stringify(state.draftSets));
+  render();
+}
+function showView(id, el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+function saveSignal(returnStudio=false){
+  const hook = document.getElementById('capHook').value.trim();
+  if(!hook) return alert('Enter a core signal first.');
+  const item = {
+    id: Date.now(),
+    hook,
+    anchor: document.getElementById('capAnchor').value,
+    lens: document.getElementById('capLens').value,
+    proof: document.getElementById('capProof').value,
+    tag: document.getElementById('capTag').value,
+    stage: document.getElementById('capStage').value,
+    notes: document.getElementById('capNotes').value.trim(),
+    evergreen: document.getElementById('capStage').value !== 'raw',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  state.signals.unshift(item);
+  persist();
+  if(returnStudio){
+    document.getElementById('studioHook').value = item.hook;
+    document.getElementById('studioNotes').value = item.notes;
+    showView('studio', document.querySelectorAll('.nav-item')[2]);
+  } else {
+    document.getElementById('capHook').value=''; document.getElementById('capNotes').value='';
+  }
+}
+function moveToStudio(){ saveSignal(true); }
+function localDrafts(hook, notes){
+  return {
+    linkedin: `Most people look at restaurant friction in the wrong place.\n\n${hook}\n\nWhat stands out to me is this: ${notes || 'the operational detail is usually the real story, not the surface complaint.'}\n\nIn hospitality, small points of friction shape margin, pace, and perception more than operators sometimes realize.\n\nThe strongest systems reduce confusion before the guest ever notices it.\n\nThat is where better decisions begin.\n\n#Hospitality #RestaurantOperations #GuestExperience #SystemsThinking`,
+    instagram: `${hook}\n\nThe best hospitality signals are usually small before they become expensive. ${notes || 'That is why observation matters.'}\n\n#hospitality #restaurantlife #operations #guestexperience #dmv`,
+    facebook: `${hook}\n\nOne thing I keep noticing in hospitality is that the visible problem is rarely the root problem. ${notes || 'Usually there is a system issue underneath it.'}\n\nThat is where the real improvement starts. What is one small friction point you see often?`,
+    tiktok: `Hook: ${hook}\n\nObservation: In restaurants, the issue people talk about is often not the real issue. ${notes || 'The real problem is usually buried in workflow, handoff, timing, or visibility.'}\n\nPayoff: Fix the small friction and the whole experience starts to feel different.`
+  };
+}
+async function generateDrafts(){
+  const hook = document.getElementById('studioHook').value.trim();
+  const notes = document.getElementById('studioNotes').value.trim();
+  if(!hook) return alert('Add a core signal first.');
+  let drafts = null;
+  const endpoint = window.CONTENT_OS_API_URL || '';
+  const looksLive = endpoint.startsWith('https://') && !endpoint.includes('your-project-name');
+  if(looksLive){
+    try {
+      const res = await fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hook, notes})});
+      if(res.ok){ drafts = await res.json(); }
+    } catch(e) {}
+  }
+  if(!drafts) drafts = localDrafts(hook, notes);
+  state.draftSets.unshift({id: Date.now(), hook, drafts, createdAt: new Date().toISOString()});
+  persist();
+  document.getElementById('draftOutput').innerHTML = ['linkedin','instagram','facebook','tiktok'].map(k => `<div class="draft"><strong>${k[0].toUpperCase()+k.slice(1)}</strong>\n\n${drafts[k]}</div>`).join('');
+}
+function render(){
+  document.getElementById('ideasCount').textContent = state.signals.length;
+  document.getElementById('draftsCount').textContent = state.draftSets.length;
+  document.getElementById('evergreenCount').textContent = state.signals.filter(s=>s.evergreen).length;
+  document.getElementById('readyCount').textContent = state.signals.filter(s=>s.stage==='ready to draft').length;
+  const tags = {};
+  state.signals.forEach(s => tags[s.tag] = (tags[s.tag] || 0) + 1);
+  document.getElementById('tagMix').innerHTML = Object.keys(tags).length ? Object.entries(tags).map(([k,v]) => `<span class="pill">${k}: ${v}</span>`).join('') : 'No signals yet.';
+  const lib = document.getElementById('libraryList');
+  lib.innerHTML = state.signals.length ? state.signals.map(s => `<div class="draft"><strong>${s.hook}</strong><br><span class="muted">${s.tag} · ${s.lens} · ${s.anchor} · ${s.stage}</span><br><br>${s.notes || ''}</div>`).join('') : 'No signals saved yet.';
+}
+render();
+</script>
+</body>
+</html>
