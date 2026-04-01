@@ -41,6 +41,39 @@
     .view { display:none; }
     .view.active { display:block; }
     @media (max-width: 900px) { .app { grid-template-columns:1fr; } nav { display:none; } .grid,.two,.row { grid-template-columns:1fr; } main { padding:18px; } }
+#draftStatus {
+  margin: 10px 0;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.92em;
+  line-height: 1.4;
+  display: none;
+  word-break: break-word;
+}
+#draftStatus.loading {
+  display: block;
+  background: #eef3ff;
+  color: #335;
+  border-left: 4px solid #5b8dee;
+}
+#draftStatus.success {
+  display: block;
+  background: #eaffea;
+  color: #1a5c1a;
+  border-left: 4px solid #3a3;
+}
+#draftStatus.error {
+  display: block;
+  background: #fff0f0;
+  color: #8b1a1a;
+  border-left: 4px solid #c33;
+}
+#draftStatus.fallback {
+  display: block;
+  background: #fff8e0;
+  color: #7a6a00;
+  border-left: 4px solid #c4a800;
+}
   </style>
   <script>
     window.CONTENT_OS_API_URL = 'https://carlos-content-os-backend.vercel.app/api/generate-drafts';
@@ -112,6 +145,7 @@
             <div><label>Context</label><textarea id="studioNotes" rows="8" placeholder="Add the story, observation, or framing you want the drafts to carry."></textarea></div>
             <div class="muted">This prototype can call a secure backend when <code>window.CONTENT_OS_API_URL</code> is set to your live Vercel endpoint. It also includes a local fallback so the interface works before deployment.</div>
             <div><button class="gold" onclick="generateDrafts()">Generate 4 drafts</button></div>
+            <div id="draftStatus"></div>
           </div>
         </div>
         <div class="card">
@@ -187,23 +221,58 @@ function localDrafts(hook, notes){
     tiktok: `Hook: ${hook}\n\nObservation: In restaurants, the issue people talk about is often not the real issue. ${notes || 'The real problem is usually buried in workflow, handoff, timing, or visibility.'}\n\nPayoff: Fix the small friction and the whole experience starts to feel different.`
   };
 }
-async function generateDrafts(){
-  const hook = document.getElementById('studioHook').value.trim();
-  const notes = document.getElementById('studioNotes').value.trim();
-  if(!hook) return alert('Add a core signal first.');
-  let drafts = null;
-  const endpoint = window.CONTENT_OS_API_URL || '';
-  const looksLive = endpoint.startsWith('https://') && !endpoint.includes('your-project-name');
-  if(looksLive){
-    try {
-      const res = await fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hook, notes})});
-      if(res.ok){ drafts = await res.json(); }
-    } catch(e) {}
-  }
-  if(!drafts) drafts = localDrafts(hook, notes);
-  state.draftSets.unshift({id: Date.now(), hook, drafts, createdAt: new Date().toISOString()});
+function setDraftStatus(type, message) {
+  var el = document.getElementById("draftStatus");
+  if (!el) return;
+  el.className = type || "";
+  el.textContent = message || "";
+  el.style.display = type ? "block" : "none";
+}
+function pushDrafts(hook, drafts) {
+  state.draftSets.unshift({id: Date.now(), hook: hook, drafts: drafts, createdAt: new Date().toISOString()});
   persist();
-  document.getElementById('draftOutput').innerHTML = ['linkedin','instagram','facebook','tiktok'].map(k => `<div class="draft"><strong>${k[0].toUpperCase()+k.slice(1)}</strong>\n\n${drafts[k]}</div>`).join('');
+  document.getElementById("draftOutput").innerHTML = ["linkedin","instagram","facebook","tiktok"].map(function(k){ return '<div class="draft"><strong>' + k[0].toUpperCase()+k.slice(1) + '</strong>\n\n' + drafts[k] + '</div>'; }).join("");
+}
+async function generateDrafts(){
+  var hook = document.getElementById("studioHook").value.trim();
+  var notes = document.getElementById("studioNotes").value.trim();
+  if(!hook) return alert("Add a core signal first.");
+  var endpoint = window.CONTENT_OS_API_URL || "";
+  var looksLive = endpoint.startsWith("https://") && !endpoint.includes("your-project-name");
+  if (!looksLive) {
+    setDraftStatus("fallback", "No live backend configured — using local fallback mode.");
+    pushDrafts(hook, localDrafts(hook, notes));
+    return;
+  }
+  setDraftStatus("loading", "Generating drafts…");
+  var res;
+  try {
+    res = await fetch(endpoint, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({hook: hook, notes: notes})});
+  } catch (networkErr) {
+    setDraftStatus("error", "Backend unreachable: " + (networkErr.message || "Network error."));
+    return;
+  }
+  if (!res.ok) {
+    var detail = "HTTP " + res.status;
+    try {
+      var body = await res.json();
+      if (body.error) { detail = body.error; if (body.detail) detail += " — " + body.detail; if (body.status) detail += " (status " + body.status + ")"; } else { detail += ": " + JSON.stringify(body); }
+    } catch (_) { detail += " " + (res.statusText || "(no details)"); }
+    setDraftStatus("error", "Backend error: " + detail);
+    return;
+  }
+  var drafts;
+  try { drafts = await res.json(); } catch (parseErr) { setDraftStatus("error", "Backend returned invalid JSON: " + parseErr.message); return; }
+  if (drafts && drafts.error) {
+    var errMsg = drafts.error; if (drafts.detail) errMsg += " — " + drafts.detail; if (drafts.raw) errMsg += " Raw: " + String(drafts.raw).slice(0, 200);
+    setDraftStatus("error", "Backend error: " + errMsg);
+    return;
+  }
+  var expected = ["linkedin","instagram","facebook","tiktok"];
+  var missing = expected.filter(function(k){ return !drafts[k]; });
+  if (missing.length) { setDraftStatus("error", "Backend response missing platforms: " + missing.join(", ")); return; }
+  setDraftStatus("success", "Drafts generated successfully via backend.");
+  pushDrafts(hook, drafts);
 }
 function render(){
   document.getElementById('ideasCount').textContent = state.signals.length;
