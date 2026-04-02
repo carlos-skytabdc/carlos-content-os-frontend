@@ -85,6 +85,10 @@
 .saved-set-meta strong { font-size:.93em; }
 .saved-set-meta span { font-size:.76em; color:var(--muted,#7d746d); white-space:nowrap; }
 .saved-empty { color:var(--muted,#7d746d); font-size:.88em; margin:8px 0; }
+.draft-actions { display:flex; gap:10px; margin:14px 0 0; }
+.del-btn { font-size:0.76em; padding:3px 10px; border:1px solid #e0b0b0; border-radius:4px; background:transparent; color:#b33; cursor:pointer; flex-shrink:0; transition:background .15s,color .15s; }
+.del-btn:hover { background:#b33; color:#fff; border-color:#b33; }
+.saved-set-actions { display:flex; justify-content:flex-end; margin-top:12px; }
 </style>
   <script>
     window.CONTENT_OS_API_URL = 'https://carlos-content-os-backend.vercel.app/api/generate-drafts';
@@ -98,6 +102,7 @@
     <a class="nav-item" onclick="showView('capture', this)">Capture Signal</a>
     <a class="nav-item" onclick="showView('studio', this)">Draft Studio</a>
     <a class="nav-item" onclick="showView('library', this)">Signal Library</a>
+    <a class="nav-item" onclick="showView('saved', this)">Saved Drafts</a>
   </nav>
   <main>
     <section id="dashboard" class="view active">
@@ -171,8 +176,17 @@
         </div>
       </div>
       <div id="draftOutput" class="stack" style="margin-top:18px;"></div>
-      <h3 class="saved-sets-heading">Saved Draft Sets</h3>
-      <div id="savedDraftSets"></div>
+      <div id="draftActions" class="draft-actions" style="display:none">
+        <button class="gold" onclick="saveCurrentDraftSet(event)">Save Draft Set</button>
+        <button onclick="clearCurrentDrafts()">Clear</button>
+      </div>
+    </section>
+
+    <section id="saved" class="view">
+      <div class="card">
+        <h3 class="section-title">Saved Drafts</h3>
+        <div id="savedDraftSets" class="stack"></div>
+      </div>
     </section>
 
     <section id="library" class="view">
@@ -337,10 +351,37 @@ function renderDraftCard(platform, text) {
     + '<div class="draft-body">' + escaped + '</div></div>';
 }
 function pushDrafts(hook, drafts) {
-  state.draftSets.unshift({id: Date.now(), hook, drafts, createdAt: new Date().toISOString()});
+  state.currentDraft = { hook: hook, drafts: drafts };
+  renderCurrentDrafts();
+}
+function renderCurrentDrafts() {
+  const el = document.getElementById('draftOutput');
+  const actions = document.getElementById('draftActions');
+  if (!el) return;
+  if (!state.currentDraft) {
+    el.innerHTML = '';
+    if (actions) actions.style.display = 'none';
+    return;
+  }
+  el.innerHTML = ['linkedin','instagram','facebook','tiktok']
+    .map(k => renderDraftCard(k, state.currentDraft.drafts[k])).join('');
+  if (actions) actions.style.display = 'flex';
+}
+function saveCurrentDraftSet(evt) {
+  if (!state.currentDraft) return;
+  state.draftSets.unshift({ id: Date.now(), hook: state.currentDraft.hook, drafts: state.currentDraft.drafts, createdAt: new Date().toISOString() });
   persist();
-  document.getElementById('draftOutput').innerHTML = ['linkedin','instagram','facebook','tiktok']
-    .map(k => renderDraftCard(k, drafts[k])).join('');
+  renderSavedDraftSets();
+  const btn = evt && evt.target ? evt.target : null;
+  if (btn) { const orig = btn.textContent; btn.textContent = 'Saved!'; setTimeout(function(){ btn.textContent = orig; }, 1500); }
+}
+function clearCurrentDrafts() {
+  state.currentDraft = null;
+  renderCurrentDrafts();
+}
+function deleteDraftSet(id) {
+  state.draftSets = state.draftSets.filter(function(ds){ return ds.id !== id; });
+  persist();
   renderSavedDraftSets();
 }
 function renderSavedDraftSets() {
@@ -355,9 +396,11 @@ function renderSavedDraftSets() {
     const ts = d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})
       + ' · ' + d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
     const cards = ['linkedin','instagram','facebook','tiktok']
-      .filter(k => set.drafts && set.drafts[k])
-      .map(k => renderDraftCard(k, set.drafts[k])).join('');
-    return '<div class="saved-set"><div class="saved-set-meta"><strong>' + set.hook + '</strong><span>' + ts + '</span></div>' + cards + '</div>';
+      .filter(function(k){ return set.drafts && set.drafts[k]; })
+      .map(function(k){ return renderDraftCard(k, set.drafts[k]); }).join('');
+    return '<div class="saved-set"><div class="saved-set-meta"><strong>' + set.hook + '</strong><span>' + ts + '</span></div>'
+      + cards
+      + '<div class="saved-set-actions"><button class="del-btn" onclick="deleteDraftSet(' + set.id + ')">Delete</button></div></div>';
   }).join('');
 }
 
@@ -371,6 +414,7 @@ function render(){
   document.getElementById('tagMix').innerHTML = Object.keys(tags).length ? Object.entries(tags).map(([k,v]) => `<span class="pill">${k}: ${v}</span>`).join('') : 'No signals yet.';
   const lib = document.getElementById('libraryList');
   lib.innerHTML = state.signals.length ? state.signals.map(s => `<div class="draft"><strong>${s.hook}</strong><br><span class="muted">${s.tag} · ${s.lens} · ${s.anchor} · ${s.stage}</span><br><br>${s.notes || ''}</div>`).join('') : 'No signals saved yet.';
+  renderCurrentDrafts();
   renderSavedDraftSets();
 }
 render();
