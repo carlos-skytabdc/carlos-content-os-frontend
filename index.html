@@ -241,6 +241,81 @@ function setDraftStatus(type, message) {
   el.textContent = message || "";
   el.style.display = type ? "block" : "none";
 }
+async function generateDrafts(){
+  var hook = document.getElementById('studioHook').value.trim();
+  var notes = document.getElementById('studioNotes').value.trim();
+  if(!hook) return alert('Add a core signal first.');
+
+  var endpoint = window.CONTENT_OS_API_URL || '';
+  var looksLive = endpoint.startsWith('https://') && !endpoint.includes('your-project-name');
+
+  if (!looksLive) {
+    setDraftStatus('fallback', 'No live backend configured — using local fallback mode.');
+    var fallback = localDrafts(hook, notes);
+    pushDrafts(hook, fallback);
+    return;
+  }
+
+  setDraftStatus('loading', 'Generating drafts…');
+
+  var res;
+  try {
+    res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hook: hook, notes: notes })
+    });
+  } catch (networkErr) {
+    setDraftStatus('error',
+      'Backend unreachable: ' + (networkErr.message || 'Network error. Check your connection or CORS settings.'));
+    return;
+  }
+
+  if (!res.ok) {
+    var detail = 'HTTP ' + res.status;
+    try {
+      var body = await res.json();
+      if (body.error) {
+        detail = body.error;
+        if (body.detail) detail += ' — ' + body.detail;
+        if (body.status) detail += ' (status ' + body.status + ')';
+      } else {
+        detail += ': ' + JSON.stringify(body);
+      }
+    } catch (_) {
+      detail += ' ' + (res.statusText || '(no details)');
+    }
+    setDraftStatus('error', 'Backend error: ' + detail);
+    return;
+  }
+
+  var drafts;
+  try {
+    drafts = await res.json();
+  } catch (parseErr) {
+    setDraftStatus('error', 'Backend returned invalid JSON: ' + parseErr.message);
+    return;
+  }
+
+  if (drafts && drafts.error) {
+    var errMsg = drafts.error;
+    if (drafts.detail) errMsg += ' — ' + drafts.detail;
+    if (drafts.raw) errMsg += '\nRaw: ' + String(drafts.raw).slice(0, 200);
+    setDraftStatus('error', 'Backend error: ' + errMsg);
+    return;
+  }
+
+  var expected = ['linkedin', 'instagram', 'facebook', 'tiktok'];
+  var missing = expected.filter(function(k){ return !drafts[k]; });
+  if (missing.length) {
+    setDraftStatus('error', 'Backend response missing platforms: ' + missing.join(', '));
+    return;
+  }
+
+  setDraftStatus('success', 'Drafts generated successfully via backend.');
+  pushDrafts(hook, drafts);
+}
+
 function copyDraft(text, btn) {
   navigator.clipboard.writeText(text).then(function() {
     btn.textContent = 'Copied';
